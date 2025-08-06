@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danbooru Artist Scraper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .stats-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #4ecdc4;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        }
+
+        .progress-container {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .artist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .artist-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .artist-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .artist-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .artist-posts {
+            color: #4ecdc4;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .artist-other-names {
+            color: #666;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .top-artists {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .top-artists h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .top-artist-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .top-artist-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .artist-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Danbooru Artist Scraper</h1>
+            <p>Search and discover artists from Danbooru with advanced filtering</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Database Statistics -->
+            <div class="stats-section">
+                <h2>📊 Database Statistics</h2>
+                
+                <!-- Authentication Status -->
+                {% if auth.authenticated %}
+                <div class="auth-status" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #d4edda; border: 1px solid #c3e6cb;">
+                    <span style="color: #155724;">✅ <strong>Authenticated</strong> as {{ auth.username }}</span>
+                    <br><span style="color: #155724; font-size: 0.9em;">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
+                    
+                    <!-- Health status with appropriate colors -->
+                    {% if auth.rate_limit_status.health_status == 'healthy' %}
+                    <br><span style="color: #155724; font-size: 0.9em;">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% elif auth.rate_limit_status.health_status == 'warning' %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% elif auth.rate_limit_status.health_status == 'critical' %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% else %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% endif %}
+                    
+                    <!-- 429 Detection Info -->
+                    {% if auth.rate_limit_status.total_429s > 0 %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
+                    {% endif %}
+                    
+                    <!-- Adaptive rate limiting status -->
+                    {% if auth.rate_limit_status.is_rate_limited %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Adaptive rate limiting active</strong></span>
+                    {% endif %}
+                    
+                    <!-- Cooldown status -->
+                    {% if auth.rate_limit_status.adaptive_cooldown_active %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">⏸️ <strong>Cooldown:</strong> {{ "%.1f"|format(auth.rate_limit_status.adaptive_cooldown_remaining) }}s remaining</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="auth-status" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #fff3cd; border: 1px solid #ffeaa7;">
+                    <span style="color: #856404;">⚠️ <strong>Using Public API</strong> (limited functionality)</span>
+                    <br><span style="color: #856404; font-size: 0.9em;">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
+                    
+                    <!-- Health status for public API -->
+                    {% if auth.rate_limit_status.health_status == 'healthy' %}
+                    <br><span style="color: #155724; font-size: 0.9em;">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% elif auth.rate_limit_status.health_status == 'warning' %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% elif auth.rate_limit_status.health_status == 'critical' %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% else %}
+                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    {% endif %}
+                    
+                    <!-- 429 Detection Info for public API -->
+                    {% if auth.rate_limit_status.total_429s > 0 %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
+                    {% endif %}
+                    
+                    <!-- Adaptive rate limiting for public API -->
+                    {% if auth.rate_limit_status.is_rate_limited %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">🔄 <strong>Adaptive rate limiting active</strong></span>
+                    {% endif %}
+                    
+                    <!-- Cooldown status for public API -->
+                    {% if auth.rate_limit_status.adaptive_cooldown_active %}
+                    <br><span style="color: #d9534f; font-size: 0.9em;">⏸️ <strong>Cooldown:</strong> {{ "%.1f"|format(auth.rate_limit_status.adaptive_cooldown_remaining) }}s remaining</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.total_artists or 0 }}</div>
+                        <div class="stat-label">Total Artists</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ "%.1f"|format(stats.avg_posts or 0) }}</div>
+                        <div class="stat-label">Average Posts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.max_posts or 0 }}</div>
+                        <div class="stat-label">Most Posts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.min_posts or 0 }}</div>
+                        <div class="stat-label">Least Posts</div>
+                    </div>
+                </div>
+                
+                {% if stats.top_artists %}
+                <div class="top-artists">
+                    <h3>🏆 Top 10 Artists by Post Count</h3>
+                    {% for artist in stats.top_artists %}
+                    <div class="top-artist-item">
+                        <span>{{ artist[0] }}</span>
+                        <span><strong>{{ artist[1] }} posts</strong></span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Scraping Control -->
+                        <!-- Scraping Control -->
+            <div class="section">
+                <h2>🚀 Data Collection</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Collect artist data from Danbooru using the JSON API. Uses pagination format a0, a1, a2, etc.
+                    Each page can contain up to 1000 artists.
+                    <strong>Note:</strong> Full collection can take several hours.
+                </p>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="startPage">Start Page (0-based):</label>
+                        <input type="number" id="startPage" value="0" min="0" max="9999">
+                        <small style="color: #666;">Page a0 = first page, a1 = second page, etc.</small>
+                    </div>
+                    <div>
+                        <label for="maxPages">Max Pages (optional):</label>
+                        <input type="number" id="maxPages" value="10" min="1" max="1000">
+                        <small style="color: #666;">Leave empty to scrape until no more data</small>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="startScraping()">Start Scraping</button>
+                <button class="btn btn-danger" onclick="stopScraping()" disabled id="stopBtn">Stop Scraping</button>
+                <button class="btn btn-secondary" onclick="refreshStats()">Refresh Stats</button>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Ready to start...</div>
+                </div>
+            </div>
+
+            <!-- Search Interface -->
+            <div class="section">
+                <h2>🔍 Search Artists</h2>
+                <div class="form-row">
+                    <div>
+                        <label for="nameStartsWith">Name starts with:</label>
+                        <input type="text" id="nameStartsWith" placeholder="e.g., A">
+                    </div>
+                    <div>
+                        <label for="nameContains">Name contains:</label>
+                        <input type="text" id="nameContains" placeholder="e.g., artist">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="minPosts">Minimum posts:</label>
+                        <input type="number" id="minPosts" placeholder="e.g., 300">
+                    </div>
+                    <div>
+                        <label for="maxPosts">Maximum posts:</label>
+                        <input type="number" id="maxPosts" placeholder="e.g., 1000">
+                    </div>
+                    <div>
+                        <label for="resultLimit">Result limit:</label>
+                        <select id="resultLimit">
+                            <option value="50">50 results</option>
+                            <option value="100" selected>100 results</option>
+                            <option value="250">250 results</option>
+                            <option value="500">500 results</option>
+                            <option value="1000">1000 results</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="searchArtists()">Search Artists</button>
+                <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+                <button class="btn btn-secondary" onclick="exportResults()">Export Data</button>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="section">
+                    <div class="results-header">
+                        <h2>📋 Search Results</h2>
+                        <span class="results-count" id="resultsCount">0 artists found</span>
+                    </div>
+                    <div class="artist-grid" id="resultsGrid">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading" id="loadingIndicator" style="display: none;">
+                <div class="spinner"></div>
+                <div>Searching artists...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scrapingInterval;
+
+        // Quick search examples
+        function searchArtistsStartingWithA() {
+            document.getElementById('nameStartsWith').value = 'A';
+            document.getElementById('nameContains').value = '';
+            document.getElementById('minPosts').value = '';
+            document.getElementById('maxPosts').value = '';
+            searchArtists();
+        }
+
+        function searchPopularArtists() {
+            document.getElementById('nameStartsWith').value = '';
+            document.getElementById('nameContains').value = '';
+            document.getElementById('minPosts').value = '300';
+            document.getElementById('maxPosts').value = '';
+            searchArtists();
+        }
+
+        function startScraping() {
+            const startPage = parseInt(document.getElementById('startPage').value);
+            const maxPagesInput = document.getElementById('maxPages').value;
+            const maxPages = maxPagesInput ? parseInt(maxPagesInput) : null;
+            
+            if (startPage < 0) {
+                showAlert('Start page must be 0 or greater.', 'error');
+                return;
+            }
+            
+            if (maxPages !== null && maxPages <= 0) {
+                showAlert('Max pages must be greater than 0.', 'error');
+                return;
+            }
+
+            const requestData = {
+                start_page: startPage
+            };
+            
+            if (maxPages !== null) {
+                requestData.max_pages = maxPages;
+            }
+
+            fetch('/scrape', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Scraping started successfully!', 'success');
+                    document.getElementById('progressContainer').style.display = 'block';
+                    document.getElementById('stopBtn').disabled = false;
+                    
+                    // Start polling for progress updates
+                    scrapingInterval = setInterval(updateScrapingProgress, 2000);
+                } else {
+                    showAlert('Failed to start scraping: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('Error starting scraping: ' + error.message, 'error');
+            });
+        }
+
+        function scrapeAll() {
+            // Start from page 0 with a high end page - the scraper will auto-stop
+            document.getElementById('startPage').value = '0';
+            document.getElementById('endPage').value = '10000';
+            startScraping();
+        }
+
+        function stopScraping() {
+            fetch('/scrape/stop', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                showAlert('Scraping stopped', 'success');
+                document.getElementById('stopBtn').disabled = true;
+                clearInterval(scrapingInterval);
+            })
+            .catch(error => {
+                showAlert('Error stopping scraping: ' + error.message, 'error');
+            });
+        }
+
+        function updateScrapingProgress() {
+            fetch('/scrape/status')
+            .then(response => response.json())
+            .then(status => {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                
+                progressFill.style.width = status.progress + '%';
+                progressText.textContent = status.message;
+                
+                if (!status.is_running) {
+                    clearInterval(scrapingInterval);
+                    document.getElementById('stopBtn').disabled = true;
+                    
+                    if (status.progress >= 100) {
+                        showAlert('Scraping completed successfully!', 'success');
+                        refreshStats();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching progress:', error);
+            });
+        }
+
+        function searchArtists() {
+            const searchData = {
+                name_starts_with: document.getElementById('nameStartsWith').value,
+                name_contains: document.getElementById('nameContains').value,
+                min_post_count: document.getElementById('minPosts').value,
+                max_post_count: document.getElementById('maxPosts').value,
+                limit: document.getElementById('resultLimit').value
+            };
+
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            fetch('/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(searchData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                
+                if (data.success) {
+                    displayResults(data.artists, data.count);
+                } else {
+                    showAlert('Search failed: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                showAlert('Error searching artists: ' + error.message, 'error');
+            });
+        }
+
+        function displayResults(artists, count) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsGrid = document.getElementById('resultsGrid');
+
+            resultsCount.textContent = `${count} artists found`;
+            resultsGrid.innerHTML = '';
+
+            artists.forEach(artist => {
+                const artistCard = document.createElement('div');
+                artistCard.className = 'artist-card';
+                
+                artistCard.innerHTML = `
+                    <div class="artist-name">${escapeHtml(artist.name)}</div>
+                    <div class="artist-posts">${artist.post_count.toLocaleString()} posts</div>
+                    ${artist.other_names ? `<div class="artist-other-names">Also known as: ${escapeHtml(artist.other_names)}</div>` : ''}
+                    ${artist.group_name ? `<div class="artist-other-names">Group: ${escapeHtml(artist.group_name)}</div>` : ''}
+                `;
+                
+                resultsGrid.appendChild(artistCard);
+            });
+
+            resultsSection.style.display = 'block';
+        }
+
+        function clearResults() {
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('nameStartsWith').value = '';
+            document.getElementById('nameContains').value = '';
+            document.getElementById('minPosts').value = '';
+            document.getElementById('maxPosts').value = '';
+        }
+
+        function refreshStats() {
+            location.reload();
+        }
+
+        function exportResults() {
+            window.open('/export', '_blank');
+        }
+
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(alert, mainContent.firstChild);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Add some example buttons for quick searches
+        window.onload = function() {
+            const searchSection = document.querySelector('.section:nth-of-type(3)');
+            const exampleButtons = document.createElement('div');
+            exampleButtons.style.marginTop = '15px';
+            exampleButtons.innerHTML = `
+                <p style="margin-bottom: 10px; color: #666;"><strong>Quick Examples:</strong></p>
+                <button class="btn btn-secondary" onclick="searchArtistsStartingWithA()">Artists starting with "A"</button>
+                <button class="btn btn-secondary" onclick="searchPopularArtists()">Artists with 300+ posts</button>
+                <button class="btn btn-secondary" onclick="testQuickScrape()">Test Scrape (3 pages)</button>
+            `;
+            searchSection.appendChild(exampleButtons);
+        };
+
+        function testQuickScrape() {
+            document.getElementById('startPage').value = '0';
+            document.getElementById('endPage').value = '2';
+            startScraping();
+        }
+
+        // Enhanced rate limiting status monitoring
+        function updateRateLimitStatus() {
+            fetch('/rate-limit-status')
+                .then(response => response.json())
+                .then(status => {
+                    const authDiv = document.querySelector('.auth-status');
+                    if (authDiv) {
+                        // Update health status indicator
+                        const healthIndicators = {
+                            'healthy': '🟢',
+                            'warning': '🟡', 
+                            'critical': '🔴',
+                            'recovering': '🔄'
+                        };
+                        
+                        const healthIcon = healthIndicators[status.health_status] || '🔄';
+                        
+                        // Find and update rate limit info in the auth status div
+                        const rateLimitText = authDiv.querySelector('span:nth-child(3)');
+                        if (rateLimitText) {
+                            rateLimitText.innerHTML = `Rate limit: ${status.current_rate_limit}`;
+                        }
+                        
+                        // Find and update health status
+                        const healthText = authDiv.querySelector('span:nth-child(5)');
+                        if (healthText) {
+                            const healthColor = status.health_status === 'healthy' ? '#155724' : 
+                                              status.health_status === 'warning' ? '#856404' : '#d9534f';
+                            healthText.innerHTML = `${healthIcon} <strong>Health:</strong> ${status.health_status}`;
+                            healthText.style.color = healthColor;
+                        }
+                        
+                        // Update 429 status if present
+                        if (status.total_429s > 0) {
+                            let existingStatus = authDiv.querySelector('.error-429-status');
+                            if (!existingStatus) {
+                                existingStatus = document.createElement('span');
+                                existingStatus.className = 'error-429-status';
+                                existingStatus.style.cssText = 'color: #856404; font-size: 0.9em; display: block;';
+                                authDiv.appendChild(document.createElement('br'));
+                                authDiv.appendChild(existingStatus);
+                            }
+                            existingStatus.innerHTML = `🚫 <strong>429 Errors:</strong> ${status.total_429s} total, ${status.consecutive_429s} consecutive`;
+                        }
+                        
+                        // Update adaptive cooldown status
+                        if (status.adaptive_cooldown_active) {
+                            let cooldownStatus = authDiv.querySelector('.cooldown-status');
+                            if (!cooldownStatus) {
+                                cooldownStatus = document.createElement('span');
+                                cooldownStatus.className = 'cooldown-status';
+                                cooldownStatus.style.cssText = 'color: #d9534f; font-size: 0.9em; display: block;';
+                                authDiv.appendChild(document.createElement('br'));
+                                authDiv.appendChild(cooldownStatus);
+                            }
+                            cooldownStatus.innerHTML = `⏸️ <strong>Cooldown:</strong> ${status.adaptive_cooldown_remaining.toFixed(1)}s remaining`;
+                        } else {
+                            // Remove cooldown status if not active
+                            const cooldownStatus = authDiv.querySelector('.cooldown-status');
+                            if (cooldownStatus) {
+                                cooldownStatus.remove();
+                            }
+                        }
+                        
+                        // Show adaptive rate limiting warning
+                        if (status.is_rate_limited) {
+                            let adaptiveStatus = authDiv.querySelector('.adaptive-status');
+                            if (!adaptiveStatus) {
+                                adaptiveStatus = document.createElement('span');
+                                adaptiveStatus.className = 'adaptive-status';
+                                adaptiveStatus.style.cssText = 'color: #856404; font-size: 0.9em; display: block;';
+                                authDiv.appendChild(document.createElement('br'));
+                                authDiv.appendChild(adaptiveStatus);
+                            }
+                            adaptiveStatus.innerHTML = `🔄 <strong>Adaptive rate limiting active</strong>`;
+                        } else {
+                            // Remove adaptive status if not active
+                            const adaptiveStatus = authDiv.querySelector('.adaptive-status');
+                            if (adaptiveStatus) {
+                                adaptiveStatus.remove();
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to update rate limit status:', error);
+                });
+        }
+
+        // Auto-update rate limiting status every 10 seconds
+        let rateLimitUpdateInterval;
+        
+        // Initialize rate limit monitoring when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            // Initial update
+            updateRateLimitStatus();
+            
+            // Set up periodic updates
+            rateLimitUpdateInterval = setInterval(updateRateLimitStatus, 10000); // Every 10 seconds
+        });
+
+        // Stop rate limit monitoring when page is hidden
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                if (rateLimitUpdateInterval) {
+                    clearInterval(rateLimitUpdateInterval);
+                }
+            } else {
+                // Resume monitoring when page becomes visible again
+                updateRateLimitStatus();
+                rateLimitUpdateInterval = setInterval(updateRateLimitStatus, 10000);
+            }
+        });
+    </script>
+</body>
+</html>

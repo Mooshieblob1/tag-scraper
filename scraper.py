@@ -3,6 +3,8 @@ import json
 import time
 import sqlite3
 import os
+import csv
+import random
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 import re
@@ -274,6 +276,93 @@ class DanbooruArtistScraper:
         else:
             return "healthy"
 
+    def get_artist_post_count(self, artist_name: str) -> int:
+        """Get post count for a specific artist by querying counts API"""
+        try:
+            self.ensure_rate_limit()
+            
+            # Use the counts API which is much more efficient
+            counts_url = f"https://danbooru.donmai.us/counts/posts.json?tags={artist_name}"
+            response = self.session.get(counts_url, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Extract post count from the counts object
+                post_count = data.get('counts', {}).get('posts', 0)
+                self.logger.debug(f"Artist {artist_name}: {post_count} posts")
+                return int(post_count)
+            else:
+                self.logger.warning(f"Failed to get post count for {artist_name}: {response.status_code}")
+                return 0
+                
+        except Exception as e:
+            self.logger.error(f"Error getting post count for {artist_name}: {e}")
+            return 0
+    
+    def get_artist_sample_images(self, artist_name: str, limit: int = 4) -> List[Dict]:
+        """Get sample images for an artist to display as preview, prioritized by rating"""
+        try:
+            self.ensure_rate_limit()
+            
+            # Get more posts than needed to allow for rating-based filtering/sorting
+            fetch_limit = min(limit * 3, 20)  # Get more images to sort by rating
+            posts_url = f"https://danbooru.donmai.us/posts.json?tags={artist_name}&limit={fetch_limit}&page=1"
+            response = self.session.get(posts_url, timeout=30)
+            
+            if response.status_code == 200:
+                posts_data = response.json()
+                images = []
+                
+                for post in posts_data:
+                    # Extract image information
+                    image_info = {
+                        'id': post.get('id'),
+                        'preview_url': post.get('preview_file_url'),
+                        'large_url': post.get('large_file_url'),
+                        'file_url': post.get('file_url'),
+                        'score': post.get('score', 0),
+                        'rating': post.get('rating', 'q'),  # g=general, s=sensitive, q=questionable, e=explicit
+                        'tags': post.get('tag_string', '').split()[:10],  # First 10 tags
+                        'created_at': post.get('created_at', ''),
+                        'image_width': post.get('image_width', 0),
+                        'image_height': post.get('image_height', 0)
+                    }
+                    
+                    # Only include if we have a preview URL
+                    if image_info['preview_url']:
+                        images.append(image_info)
+                
+                # Sort by rating priority: g=0, s=1, q=2, e=3 (lower = higher priority)
+                # Then by score descending
+                def rating_priority(image):
+                    rating = image['rating']
+                    if rating == 'g':
+                        return 0
+                    elif rating == 's':
+                        return 1
+                    elif rating == 'q':
+                        return 2
+                    elif rating == 'e':
+                        return 3
+                    else:
+                        return 2  # Default to questionable priority
+                
+                images.sort(key=lambda x: (rating_priority(x), -x['score']))
+                
+                # Return only the requested number of images
+                result_images = images[:limit]
+                
+                self.logger.debug(f"Found {len(result_images)} sample images for {artist_name} (sorted by rating priority)")
+                return result_images
+                
+            else:
+                self.logger.warning(f"Failed to get sample images for {artist_name}: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            self.logger.error(f"Error getting sample images for {artist_name}: {e}")
+            return []
+
     def get_page(self, page_id: str, retries: int = 5) -> Optional[List[Dict]]:
         """Fetch a single page of artists using JSON API with enhanced 429 detection"""
         self.ensure_rate_limit()
@@ -373,25 +462,25 @@ class DanbooruArtistScraper:
         self.logger.error(f"❌ All retry attempts exhausted for page {page_id}")
         return None
     
-    def parse_artist_data(self, artist_json: Dict) -> Optional[Dict]:
-        """Parse artist data from JSON response"""
+    def parse_artist_data(self, artist_json: Dict, fetch_post_count: bool = True) -> Optional[Dict]:
+        """Parse artist data from JSON response with optional post count fetching"""
         try:
-            # Handle missing post_count field gracefully
-            post_count = artist_json.get('post_count', 0)
+            artist_name = artist_json.get('name', '').strip()
             
-            # If post_count is not available, we could potentially fetch it separately
-            # but for now, we'll default to 0
-            if post_count is None:
-                post_count = 0
+            # Get post count if requested and artist name is available
+            post_count = 0
+            if fetch_post_count and artist_name:
+                post_count = self.get_artist_post_count(artist_name)
+                self.logger.debug(f"Artist {artist_name}: {post_count} posts")
             
             return {
                 'id': artist_json.get('id'),
-                'name': artist_json.get('name', '').strip(),
+                'name': artist_name,
                 'post_count': post_count,
                 'other_names': ', '.join(artist_json.get('other_names', [])) if artist_json.get('other_names') else "",
                 'group_name': artist_json.get('group_name', '').strip() if artist_json.get('group_name') else "",
-                'url_string': artist_json.get('url_string', '').strip() if artist_json.get('url_string') else "",
-                'is_active': artist_json.get('is_active', True),
+                'url_string': "",  # Not available in public API
+                'is_active': not artist_json.get('is_deleted', False),  # Active if not deleted
                 'created_at': artist_json.get('created_at', ''),
                 'updated_at': artist_json.get('updated_at', ''),
                 'is_banned': artist_json.get('is_banned', False),
@@ -402,17 +491,40 @@ class DanbooruArtistScraper:
             self.logger.debug(f"Problematic data: {artist_json}")
             return None
     
-    def scrape_page(self, page_id: str) -> List[Dict]:
-        """Scrape artists from a single page using JSON API"""
+    def scrape_page(self, page_id: str, fetch_post_counts: bool = True, batch_size: int = 50) -> List[Dict]:
+        """Scrape artists from a single page using JSON API with optional batch post count fetching"""
         artists_json = self.get_page(page_id)
         if not artists_json:
             return []
         
         artists = []
-        for artist_json in artists_json:
-            artist_data = self.parse_artist_data(artist_json)
-            if artist_data:
-                artists.append(artist_data)
+        
+        if fetch_post_counts:
+            # Process artists in batches for better user feedback
+            total_artists = len(artists_json)
+            self.logger.info(f"🔢 Processing {total_artists} artists with post counts in batches of {batch_size}")
+            
+            for i in range(0, total_artists, batch_size):
+                batch = artists_json[i:i + batch_size]
+                batch_end = min(i + batch_size, total_artists)
+                
+                self.logger.info(f"📦 Processing batch {i//batch_size + 1}/{(total_artists + batch_size - 1)//batch_size} (artists {i+1}-{batch_end})")
+                
+                for artist_json in batch:
+                    artist_data = self.parse_artist_data(artist_json, fetch_post_count=True)
+                    if artist_data:
+                        artists.append(artist_data)
+                
+                # Small delay between batches to be respectful
+                if i + batch_size < total_artists:
+                    import time
+                    time.sleep(0.5)
+        else:
+            # Fast mode - no post counts
+            for artist_json in artists_json:
+                artist_data = self.parse_artist_data(artist_json, fetch_post_count=False)
+                if artist_data:
+                    artists.append(artist_data)
         
         return artists
     
@@ -453,9 +565,13 @@ class DanbooruArtistScraper:
         """Generate page ID for the API (a0, a1, a2, etc.)"""
         return f"a{page_num}"
     
-    def scrape_all_pages(self, start_page: int = 0, max_pages: int = None):
+    def scrape_all_pages(self, start_page: int = 0, max_pages: int = None, fetch_post_counts: bool = True):
         """Scrape all pages starting from start_page until no more artists are found"""
         self.logger.info(f"🚀 Starting comprehensive scrape from page {start_page}")
+        if fetch_post_counts:
+            self.logger.info("📊 Will fetch individual post counts (this will be slower but more accurate)")
+        else:
+            self.logger.info("⚡ Fast mode: skipping post count fetching")
         
         page_num = start_page
         total_artists_scraped = 0
@@ -482,7 +598,7 @@ class DanbooruArtistScraper:
                 
                 self.logger.info(f"📄 Processing page {page_id} (page number {page_num})")
                 
-                artists = self.scrape_page(page_id)
+                artists = self.scrape_page(page_id, fetch_post_counts=fetch_post_counts)
                 
                 if not artists:
                     consecutive_empty_pages += 1
@@ -574,8 +690,10 @@ class DanbooruArtistScraper:
         cursor.execute("SELECT COUNT(*) FROM artists")
         total_artists = cursor.fetchone()[0]
         
-        cursor.execute("SELECT AVG(post_count), MAX(post_count), MIN(post_count) FROM artists")
-        avg_posts, max_posts, min_posts = cursor.fetchone()
+        cursor.execute("SELECT AVG(post_count), MAX(post_count) FROM artists WHERE post_count > 0")
+        result = cursor.fetchone()
+        avg_posts = result[0] if result[0] is not None else 0
+        max_posts = result[1] if result[1] is not None else 0
         
         cursor.execute("SELECT name, post_count FROM artists ORDER BY post_count DESC LIMIT 10")
         top_artists = cursor.fetchall()
@@ -586,9 +704,38 @@ class DanbooruArtistScraper:
             'total_artists': total_artists,
             'avg_posts': avg_posts,
             'max_posts': max_posts,
-            'min_posts': min_posts,
             'top_artists': top_artists
         }
+
+    def export_to_csv(self, filename: str = "danbooru_artists.csv", limit: int = None) -> str:
+        """Export all artists to CSV file"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        query = "SELECT * FROM artists ORDER BY name"
+        if limit:
+            query += f" LIMIT {limit}"
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        # Get column names
+        columns = [description[0] for description in cursor.description]
+        
+        # Write to CSV
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # Write header
+            writer.writerow(columns)
+            
+            # Write data
+            writer.writerows(results)
+        
+        conn.close()
+        
+        self.logger.info(f"📁 Exported {len(results)} artists to {filename}")
+        return filename
 
 if __name__ == "__main__":
     # Create scraper instance

@@ -6,15 +6,24 @@ A comprehensive web application for scraping and searching artist data from Danb
 
 - **Web-based Interface**: Modern, responsive UI for easy interaction
 - **Artist Scraping**: Collect artist data from Danbooru pages 1-1000 (free tier limit)
+- **Post Count Fetching**: Optional individual post count retrieval (requires API credentials)
+- **Image Previews**: Visual artwork previews directly in search results with:
+  - **Smart Blur**: Sensitive/questionable/explicit content blurred by default  
+  - **Extreme Blur Effect**: 4.3 billion pixel blur (2^32) for maximum privacy
+  - **Rating Priority**: General → Sensitive → Questionable → Explicit display order
+  - **Toggle Control**: Per-artist blur toggle in preview interface
+  - **Safety Badges**: Clear rating indicators (General/Sensitive/Questionable/Explicit)
+- **Duplicate Detection**: Automatically handles duplicate artists with database constraints
+- **Page Continuation**: Scrapes until no more pages are found (up to 3 consecutive empty pages)
 - **Advanced Search**: Filter artists by:
   - Name (starts with, contains)
-  - Post count (minimum/maximum)
+  - Post count (minimum/maximum) - when post counts are fetched
   - Multiple criteria combinations
 - **Real-time Progress**: Live progress tracking during scraping
 - **Enhanced 429 Detection**: Intelligent rate limiting with automatic adaptation
 - **Health Monitoring**: Real-time rate limiting status with color-coded health indicators
 - **Database Storage**: SQLite database for efficient data storage and querying
-- **Export Functionality**: Export search results as JSON
+- **Export Functionality**: Export search results as JSON and CSV
 - **Statistics Dashboard**: View database statistics and top artists
 
 ## 🚫 Advanced Rate Limiting
@@ -43,7 +52,22 @@ This scraper includes sophisticated 429 (Too Many Requests) detection and adapti
 ### Installation
 
 1. **Clone or download this repository**
-2. **Run the setup script:**
+
+2. **Set up API credentials (REQUIRED for post counts):**
+   ```bash
+   # Create .env file with your Danbooru credentials
+   echo "DANBOORU_USERNAME=your_username" > .env
+   echo "DANBOORU_API_KEY=your_api_key" >> .env
+   ```
+   
+   **How to get API credentials:**
+   - Create a free account at https://danbooru.donmai.us/
+   - Go to https://danbooru.donmai.us/api_keys and generate an API key
+   - Replace `your_username` and `your_api_key` with your actual credentials
+   
+   **⚠️ IMPORTANT**: Without API credentials, post counts will always be 0!
+
+3. **Run the setup script:**
    ```bash
    ./setup.sh
    ```
@@ -52,23 +76,26 @@ This scraper includes sophisticated 429 (Too Many Requests) detection and adapti
    - Install all dependencies
    - Set up the project structure
 
-3. **Start the application:**
+4. **Start the application:**
    ```bash
    source venv/bin/activate
    python app.py
    ```
 
-4. **Open your browser to:** http://localhost:5000
+5. **Open your browser to:** http://localhost:5000
 
 ## 📊 How to Use
 
 ### 1. Data Collection
 - Navigate to the "Data Collection" section
 - Set your page range (start with 1-10 for testing)
+- **Choose post count mode:**
+  - ✅ **With post counts**: Accurate data but much slower (1-2 API calls per artist)
+  - ⚡ **Fast mode**: Basic artist info only, post counts will be 0
 - Click "Start Scraping" to begin collecting artist data
 - Monitor progress with the real-time progress bar
 - Watch the rate limiting health status for any issues
-- **Note**: Scraping all 1000 pages takes several hours
+- **Note**: Full scrape with post counts can take many hours; without post counts takes 2-4 hours
 
 ### 2. Searching Artists
 Use the search interface to find artists by:
@@ -81,8 +108,12 @@ Use the search interface to find artists by:
 
 ### 3. Results Management
 - View results in an organized grid layout
-- See artist names, post counts, and alternative names
-- Export results as JSON for external use
+- See artist names, post counts (if fetched), and alternative names
+- **Image Previews**: Click "📸 Show Preview" to see sample artwork from each artist
+  - Safe/Questionable/Explicit content ratings are color-coded
+  - Click any preview image to view it full-size
+  - Direct links to artist's Danbooru page
+- Export results as JSON or CSV for external use
 - Clear results and start new searches
 
 ## 🔧 Technical Details
@@ -118,6 +149,7 @@ CREATE TABLE artists (
 - `POST /scrape/stop`: Stop scraping
 - `GET /stats`: Get database statistics
 - `GET /export`: Export all data as JSON
+- `GET /export/csv`: Export all data as CSV
 
 ## 🛠️ Advanced Usage
 

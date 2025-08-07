@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
 import sqlite3
 import json
-from scraper import DanbooruArtistScraper
 import threading
 import os
+from scraper import DanbooruArtistScraper
 
 app = Flask(__name__)
 
@@ -87,57 +87,56 @@ def start_scraping():
         }), 400
     
     data = request.get_json()
-    start_page = int(data.get('start_page', 0))  # Changed default to 0
-    end_page = int(data.get('end_page', 100))     # More reasonable default
+    start_page = int(data.get('start_page', 0))
+    max_pages = data.get('max_pages')
+    fetch_post_counts = data.get('fetch_post_counts', True)  # Default to True for compatibility
+    
+    if max_pages:
+        max_pages = int(max_pages)
+        end_page = start_page + max_pages - 1
+    else:
+        max_pages = None
+        end_page = None
     
     # Validate page range
-    if start_page < 0 or end_page < start_page:
+    if start_page < 0:
         return jsonify({
             'success': False,
-            'error': 'Invalid page range. start_page must be >= 0 and start_page <= end_page'
+            'error': 'start_page must be >= 0'
+        }), 400
+    
+    if max_pages is not None and max_pages <= 0:
+        return jsonify({
+            'success': False,
+            'error': 'max_pages must be > 0'
         }), 400
     
     # Start scraping in background thread
     scraping_status.update({
         'is_running': True,
         'current_page': start_page,
-        'total_pages': end_page - start_page + 1,
+        'total_pages': max_pages if max_pages else 'Unknown (scraping until exhausted)',
         'progress': 0,
-        'message': f'Starting scrape from page a{start_page} to a{end_page}'
+        'message': f'Starting scrape from page a{start_page}' + (f' (max {max_pages} pages)' if max_pages else ' (until exhausted)'),
+        'fetch_post_counts': fetch_post_counts
     })
     
     def scrape_background():
         global scraping_status
         try:
-            # Use the new scrape_all_pages method with max_pages
-            max_pages = end_page - start_page + 1
-            
-            page_num = start_page
-            total_artists_scraped = 0
-            
-            while page_num <= end_page and scraping_status['is_running']:
-                page_id = scraper.generate_page_id(page_num)
-                
-                scraping_status['current_page'] = page_num
-                scraping_status['progress'] = ((page_num - start_page + 1) / scraping_status['total_pages']) * 100
-                scraping_status['message'] = f'Scraping page {page_id} ({page_num}/{end_page})'
-                
-                artists = scraper.scrape_page(page_id)
-                if artists:
-                    scraper.save_artists(artists)
-                    total_artists_scraped += len(artists)
-                else:
-                    # If no artists found, we might have reached the end
-                    scraping_status['message'] = f'No artists found on page {page_id} - might have reached end'
-                
-                page_num += 1
-                
-                # Rate limiting is handled in the scraper
+            # Use the enhanced scrape_all_pages method
+            total_artists_scraped = scraper.scrape_all_pages(
+                start_page=start_page,
+                max_pages=max_pages,
+                fetch_post_counts=fetch_post_counts
+            )
             
             scraping_status.update({
                 'is_running': False,
                 'progress': 100,
-                'message': f'Scraping completed successfully. Total artists: {total_artists_scraped}'
+                'message': f'Scraping completed successfully. Total artists: {total_artists_scraped}' + 
+                          (' (with post counts)' if fetch_post_counts else ' (without post counts)'),
+                'total_scraped': total_artists_scraped
             })
         
         except Exception as e:
@@ -185,7 +184,7 @@ def export_data():
     """Export all artists data as JSON"""
     conn = sqlite3.connect(scraper.db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM artists ORDER BY post_count DESC")
+    cursor.execute("SELECT * FROM artists ORDER BY name")
     results = cursor.fetchall()
     
     columns = [description[0] for description in cursor.description]
@@ -197,6 +196,33 @@ def export_data():
         'artists': artists,
         'total_count': len(artists)
     })
+
+@app.route('/export/csv')
+def export_csv():
+    """Export all artists data as CSV file"""
+    try:
+        filename = scraper.export_to_csv()
+        return send_file(filename, as_attachment=True, download_name="danbooru_artists.csv")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/artist/<artist_name>/images')
+def get_artist_images(artist_name):
+    """Get sample images for an artist"""
+    try:
+        limit = min(int(request.args.get('limit', 4)), 10)  # Cap at 10 images
+        images = scraper.get_artist_sample_images(artist_name, limit=limit)
+        return jsonify({
+            'success': True,
+            'artist_name': artist_name,
+            'images': images,
+            'count': len(images)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

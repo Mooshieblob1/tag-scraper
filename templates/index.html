@@ -226,25 +226,234 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
+        .artist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .artist-info {
+            flex: 1;
+        }
+
         .artist-name {
             font-size: 1.2em;
             font-weight: bold;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .artist-posts {
             color: #4ecdc4;
             font-weight: 600;
             font-size: 1.1em;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .artist-other-names {
             color: #666;
             font-style: italic;
             font-size: 0.9em;
+            margin-bottom: 3px;
         }
+
+        .artist-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: opacity 0.2s;
+        }
+
+        .btn-preview {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-preview:hover {
+            opacity: 0.8;
+        }
+
+        .btn-preview:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .artist-preview {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .preview-title {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .preview-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            cursor: pointer;
+        }
+
+        .preview-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .preview-image {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .preview-image:hover {
+            border-color: #4ecdc4;
+        }
+
+        .preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: filter 0.3s ease;
+        }
+
+        .preview-image.blurred img {
+            filter: blur(4294967296px);
+        }
+
+        .preview-image.blurred:hover img {
+            filter: blur(2147483648px);
+        }
+
+        .blur-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .blur-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .blur-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .preview-image .content-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .preview-image.blurred .content-warning {
+            opacity: 1;
+        }
+
+        .preview-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .preview-error {
+            color: #dc3545;
+            font-size: 0.8em;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+        }
+
+        .image-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .image-modal img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .rating-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 5px;
+            font-size: 0.6em;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .rating-g { background: #28a745; }
+        .rating-s { background: #17a2b8; }
+        .rating-q { background: #ffc107; color: #000; }
+        .rating-e { background: #dc3545; }
 
         .loading {
             text-align: center;
@@ -412,10 +621,6 @@
                         <div class="stat-value">{{ stats.max_posts or 0 }}</div>
                         <div class="stat-label">Most Posts</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{{ stats.min_posts or 0 }}</div>
-                        <div class="stat-label">Least Posts</div>
-                    </div>
                 </div>
                 
                 {% if stats.top_artists %}
@@ -435,10 +640,23 @@
                         <!-- Scraping Control -->
             <div class="section">
                 <h2>🚀 Data Collection</h2>
+                <div style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #e7f3ff; border: 1px solid #b8daff;">
+                    <p style="color: #004085; margin: 0 0 10px 0;"><strong>💡 Recommended Process:</strong></p>
+                    <ol style="color: #004085; margin: 0; padding-left: 20px;">
+                        <li><strong>Start with fast mode</strong> (uncheck post counts) for initial collection</li>
+                        <li><strong>Get basic artist data quickly</strong> (names, other names, activity status)</li>
+                        <li><strong>Use search to find interesting artists</strong> by name or criteria</li>
+                        <li><strong>Enable post counts only when needed</strong> for specific searches</li>
+                    </ol>
+                    <p style="color: #004085; margin: 10px 0 0 0; font-size: 0.9em;">
+                        ⚡ <strong>Fast mode:</strong> ~1000 artists in 2-3 seconds<br>
+                        📊 <strong>With post counts:</strong> ~1000 artists in 10+ minutes (1000+ extra API calls)
+                    </p>
+                </div>
+                
                 <p style="margin-bottom: 20px; color: #666;">
                     Collect artist data from Danbooru using the JSON API. Uses pagination format a0, a1, a2, etc.
                     Each page can contain up to 1000 artists.
-                    <strong>Note:</strong> Full collection can take several hours.
                 </p>
                 
                 <div class="form-row">
@@ -454,7 +672,17 @@
                     </div>
                 </div>
                 
-                <button class="btn" onclick="startScraping()">Start Scraping</button>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="fetchPostCounts">
+                        <span><strong>Enable post count fetching</strong> (much slower but complete data)</span>
+                    </label>
+                    <small style="color: #666; margin-left: 25px;">
+                        ⚡ <strong>Recommended:</strong> Leave unchecked for fast initial collection<br>
+                        📊 <strong>Enable only when needed:</strong> Adds 1000+ extra API calls per page (very slow)<br>
+                        🎯 <strong>Best practice:</strong> Collect artists first, then search by name to find interesting ones
+                    </small>
+                </div>                <button class="btn" onclick="startScraping()">Start Scraping</button>
                 <button class="btn btn-danger" onclick="stopScraping()" disabled id="stopBtn">Stop Scraping</button>
                 <button class="btn btn-secondary" onclick="refreshStats()">Refresh Stats</button>
                 
@@ -481,13 +709,11 @@
                 </div>
                 
                 <div class="form-row">
-                    <div>
-                        <label for="minPosts">Minimum posts:</label>
-                        <input type="number" id="minPosts" placeholder="e.g., 300">
-                    </div>
-                    <div>
-                        <label for="maxPosts">Maximum posts:</label>
-                        <input type="number" id="maxPosts" placeholder="e.g., 1000">
+                    <div style="grid-column: span 2;">
+                        <p style="color: #d9534f; font-size: 0.9em; margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+                            ⚠️ <strong>Post Count Limitation:</strong> Post counts are not available in the public Danbooru API. 
+                            All artists will show 0 posts. Use name-based searching instead.
+                        </p>
                     </div>
                     <div>
                         <label for="resultLimit">Result limit:</label>
@@ -503,7 +729,8 @@
                 
                 <button class="btn" onclick="searchArtists()">Search Artists</button>
                 <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
-                <button class="btn btn-secondary" onclick="exportResults()">Export Data</button>
+                <button class="btn btn-secondary" onclick="exportResults()">Export as JSON</button>
+                <button class="btn btn-secondary" onclick="exportCSV()">Export as CSV</button>
             </div>
 
             <!-- Results Section -->
@@ -534,23 +761,21 @@
         function searchArtistsStartingWithA() {
             document.getElementById('nameStartsWith').value = 'A';
             document.getElementById('nameContains').value = '';
-            document.getElementById('minPosts').value = '';
-            document.getElementById('maxPosts').value = '';
             searchArtists();
         }
 
         function searchPopularArtists() {
+            // Note: Post count filtering not available in public API
             document.getElementById('nameStartsWith').value = '';
             document.getElementById('nameContains').value = '';
-            document.getElementById('minPosts').value = '300';
-            document.getElementById('maxPosts').value = '';
-            searchArtists();
+            showAlert('Post count filtering is not available in the public API. Use name-based search instead.', 'warning');
         }
 
         function startScraping() {
             const startPage = parseInt(document.getElementById('startPage').value);
             const maxPagesInput = document.getElementById('maxPages').value;
             const maxPages = maxPagesInput ? parseInt(maxPagesInput) : null;
+            const fetchPostCounts = document.getElementById('fetchPostCounts').checked;
             
             if (startPage < 0) {
                 showAlert('Start page must be 0 or greater.', 'error');
@@ -563,7 +788,8 @@
             }
 
             const requestData = {
-                start_page: startPage
+                start_page: startPage,
+                fetch_post_counts: fetchPostCounts
             };
             
             if (maxPages !== null) {
@@ -646,8 +872,8 @@
             const searchData = {
                 name_starts_with: document.getElementById('nameStartsWith').value,
                 name_contains: document.getElementById('nameContains').value,
-                min_post_count: document.getElementById('minPosts').value,
-                max_post_count: document.getElementById('maxPosts').value,
+                min_post_count: null,  // Not available in public API
+                max_post_count: null,  // Not available in public API
                 limit: document.getElementById('resultLimit').value
             };
 
@@ -690,10 +916,25 @@
                 artistCard.className = 'artist-card';
                 
                 artistCard.innerHTML = `
-                    <div class="artist-name">${escapeHtml(artist.name)}</div>
-                    <div class="artist-posts">${artist.post_count.toLocaleString()} posts</div>
-                    ${artist.other_names ? `<div class="artist-other-names">Also known as: ${escapeHtml(artist.other_names)}</div>` : ''}
-                    ${artist.group_name ? `<div class="artist-other-names">Group: ${escapeHtml(artist.group_name)}</div>` : ''}
+                    <div class="artist-header">
+                        <div class="artist-info">
+                            <div class="artist-name">${escapeHtml(artist.name)}</div>
+                            <div class="artist-posts">${artist.post_count.toLocaleString()} posts</div>
+                            ${artist.other_names ? `<div class="artist-other-names">Also known as: ${escapeHtml(artist.other_names)}</div>` : ''}
+                            ${artist.group_name ? `<div class="artist-other-names">Group: ${escapeHtml(artist.group_name)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="artist-actions">
+                        <button class="btn-small btn-preview" onclick="togglePreview('${escapeHtml(artist.name)}', this)">
+                            📸 Show Preview
+                        </button>
+                        <a href="https://danbooru.donmai.us/posts?tags=${encodeURIComponent(artist.name)}" 
+                           target="_blank" class="btn-small" style="background: #667eea; color: white; text-decoration: none;">
+                            🔗 View on Danbooru
+                        </a>
+                    </div>
+                    <div class="artist-preview" id="preview-${escapeHtml(artist.name)}" style="display: none;">
+                    </div>
                 `;
                 
                 resultsGrid.appendChild(artistCard);
@@ -706,8 +947,6 @@
             document.getElementById('resultsSection').style.display = 'none';
             document.getElementById('nameStartsWith').value = '';
             document.getElementById('nameContains').value = '';
-            document.getElementById('minPosts').value = '';
-            document.getElementById('maxPosts').value = '';
         }
 
         function refreshStats() {
@@ -716,6 +955,11 @@
 
         function exportResults() {
             window.open('/export', '_blank');
+        }
+
+        function exportCSV() {
+            // Open CSV export in new tab
+            window.open('/export/csv', '_blank');
         }
 
         function showAlert(message, type) {
@@ -748,6 +992,161 @@
             };
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
+
+        // Image preview functionality
+        function togglePreview(artistName, button) {
+            const previewDiv = document.getElementById(`preview-${artistName}`);
+            
+            if (previewDiv.style.display === 'none') {
+                showPreview(artistName, button);
+            } else {
+                hidePreview(artistName, button);
+            }
+        }
+
+        function showPreview(artistName, button) {
+            const previewDiv = document.getElementById(`preview-${artistName}`);
+            button.disabled = true;
+            button.textContent = '⏳ Loading...';
+            
+            previewDiv.style.display = 'block';
+            previewDiv.innerHTML = '<div class="preview-loading">Loading images...</div>';
+            
+            fetch(`/artist/${encodeURIComponent(artistName)}/images?limit=4`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.images.length > 0) {
+                        displayPreviewImages(artistName, data.images, button);
+                    } else {
+                        previewDiv.innerHTML = '<div class="preview-error">No images found or failed to load</div>';
+                        button.disabled = false;
+                        button.textContent = '📸 Show Preview';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading images:', error);
+                    previewDiv.innerHTML = '<div class="preview-error">Failed to load images</div>';
+                    button.disabled = false;
+                    button.textContent = '📸 Show Preview';
+                });
+        }
+
+        function displayPreviewImages(artistName, images, button) {
+            const previewDiv = document.getElementById(`preview-${artistName}`);
+            
+            // Create unique ID for this preview's blur toggle
+            const toggleId = `blur-toggle-${artistName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            
+            let imagesHtml = `
+                <div class="preview-header">
+                    <div class="preview-title">Sample artwork (${images.length} images)</div>
+                    <button class="preview-close" onclick="hidePreview('${artistName}', document.querySelector('[onclick*=\\'${artistName}\\']'))">✕</button>
+                </div>
+                <div class="blur-toggle-container">
+                    <div class="blur-toggle">
+                        <input type="checkbox" id="${toggleId}" onchange="toggleImageBlur('${artistName}')" checked>
+                        <label for="${toggleId}" title="When enabled, sensitive, questionable and explicit content will be blurred. Hover to preview, click toggle to reveal all.">
+                            Blur sensitive/questionable/explicit content
+                        </label>
+                    </div>
+                </div>
+                <div class="preview-images">
+            `;
+            
+            images.forEach(image => {
+                const ratingClass = `rating-${image.rating}`;
+                const ratingText = {
+                    'g': 'General',
+                    's': 'Sensitive', 
+                    'q': 'Questionable', 
+                    'e': 'Explicit'
+                }[image.rating] || 'Unknown';
+                
+                // Determine if image should be blurred by default (sensitive and above)
+                const shouldBlur = image.rating === 's' || image.rating === 'q' || image.rating === 'e';
+                const blurClass = shouldBlur ? 'blurred' : '';
+                const warningText = image.rating === 's' ? 'Sensitive Content' : 
+                                  image.rating === 'q' ? 'Questionable Content' : 
+                                  image.rating === 'e' ? 'Explicit Content' : '';
+                
+                imagesHtml += `
+                    <div class="preview-image ${blurClass}" data-rating="${image.rating}" onclick="showImageModal('${image.large_url || image.file_url}')">
+                        <img src="${image.preview_url}" alt="Artwork by ${artistName}" loading="lazy">
+                        <div class="rating-badge ${ratingClass}">${ratingText}</div>
+                        ${warningText ? `<div class="content-warning">${warningText}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            imagesHtml += '</div>';
+            previewDiv.innerHTML = imagesHtml;
+            
+            button.disabled = false;
+            button.textContent = '🖼️ Hide Preview';
+        }
+
+        function toggleImageBlur(artistName) {
+            const toggleId = `blur-toggle-${artistName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const toggle = document.getElementById(toggleId);
+            const previewDiv = document.getElementById(`preview-${artistName}`);
+            
+            if (!toggle || !previewDiv) return;
+            
+            const shouldBlur = toggle.checked;
+            const images = previewDiv.querySelectorAll('.preview-image');
+            
+            images.forEach(img => {
+                const rating = img.getAttribute('data-rating');
+                const isSensitiveOrAbove = rating === 's' || rating === 'q' || rating === 'e';
+                
+                if (shouldBlur && isSensitiveOrAbove) {
+                    img.classList.add('blurred');
+                } else {
+                    img.classList.remove('blurred');
+                }
+            });
+        }
+
+        function hidePreview(artistName, button) {
+            const previewDiv = document.getElementById(`preview-${artistName}`);
+            previewDiv.style.display = 'none';
+            if (button) {
+                button.textContent = '📸 Show Preview';
+            }
+        }
+
+        function showImageModal(imageUrl) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('imageModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'imageModal';
+                modal.className = 'image-modal';
+                modal.onclick = () => modal.style.display = 'none';
+                
+                modal.innerHTML = `
+                    <div class="image-modal-content">
+                        <img id="modalImage" src="" alt="Full size artwork">
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+            }
+            
+            // Set image and show modal
+            document.getElementById('modalImage').src = imageUrl;
+            modal.style.display = 'block';
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('imageModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        });
 
         // Add some example buttons for quick searches
         window.onload = function() {

@@ -5,6 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Danbooru Artist Scraper</title>
     <style>
+        :root {
+            /* Light mode variables */
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: white;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --border-color: #ddd;
+            --border-focus: #4ecdc4;
+            --section-bg: #f8f9fa;
+            --stat-bg: white;
+            --input-bg: white;
+            --modal-bg: rgba(0, 0, 0, 0.8);
+            --shadow-light: rgba(0,0,0,0.1);
+            --shadow-medium: rgba(0,0,0,0.15);
+            --shadow-heavy: rgba(0,0,0,0.3);
+            /* Alert colors for light mode */
+            --success-bg: #d4edda;
+            --success-text: #155724;
+            --success-border: #c3e6cb;
+            --error-bg: #f8d7da;
+            --error-text: #721c24;
+            --error-border: #f5c6cb;
+            --warning-bg: #fff3cd;
+            --warning-text: #856404;
+            --warning-border: #ffeaa7;
+        }
+
+        [data-theme="dark"] {
+            /* Dark mode variables */
+            --bg-gradient-start: #2c3e50;
+            --bg-gradient-end: #34495e;
+            --card-bg: #2c3e50;
+            --text-primary: #ecf0f1;
+            --text-secondary: #bdc3c7;
+            --text-muted: #7f8c8d;
+            --border-color: #34495e;
+            --border-focus: #4ecdc4;
+            --section-bg: #34495e;
+            --stat-bg: #2c3e50;
+            --input-bg: #34495e;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+            --shadow-light: rgba(255,255,255,0.05);
+            --shadow-medium: rgba(255,255,255,0.1);
+            --shadow-heavy: rgba(0,0,0,0.5);
+            /* Alert colors for dark mode */
+            --success-bg: #1e3d2b;
+            --success-text: #4ade80;
+            --success-border: #16a34a;
+            --error-bg: #3d1e1e;
+            --error-text: #f87171;
+            --error-border: #dc2626;
+            --warning-bg: #3d2e1e;
+            --warning-text: #fbbf24;
+            --warning-border: #f59e0b;
+        }
+
+        /* Health Status Colors */
+        .health-healthy {
+            color: var(--success-text, #155724);
+        }
+
+        .health-warning {
+            color: var(--warning-text, #856404);
+        }
+
+        .health-critical {
+            color: var(--error-text, #d9534f);
+        }
+
+        .health-recovering {
+            color: var(--info-text, #0c5460);
+        }
+
+        /* Dark mode health status colors */
+        [data-theme="dark"] .health-healthy {
+            color: #4ade80;
+        }
+
+        [data-theme="dark"] .health-warning {
+            color: #fbbf24;
+        }
+
+        [data-theme="dark"] .health-critical {
+            color: #f87171;
+        }
+
+        [data-theme="dark"] .health-recovering {
+            color: #66b3ff;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,18 +105,20 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.3s ease;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: var(--card-bg);
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px var(--shadow-heavy);
             overflow: hidden;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
         .header {
@@ -32,6 +126,70 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
+        }
+
+        .dark-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dark-mode-toggle label {
+            color: white;
+            font-size: 0.9em;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .theme-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .theme-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .theme-switch input:checked + .theme-slider {
+            transform: translateX(26px);
+        }
+
+        .theme-switch input:checked + .theme-slider::before {
+            content: '🌙';
+        }
+
+        .theme-slider::before {
+            content: '☀️';
         }
 
         .header h1 {
@@ -46,14 +204,17 @@
 
         .main-content {
             padding: 30px;
+            background: var(--card-bg);
+            transition: background 0.3s ease;
         }
 
         .stats-section {
-            background: #f8f9fa;
+            background: var(--section-bg);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 30px;
             border-left: 5px solid #4ecdc4;
+            transition: background 0.3s ease;
         }
 
         .stats-grid {
@@ -64,11 +225,12 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--stat-bg);
             padding: 15px;
             border-radius: 8px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px var(--shadow-light);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
         .stat-value {
@@ -78,21 +240,24 @@
         }
 
         .stat-label {
-            color: #666;
+            color: var(--text-secondary);
             margin-top: 5px;
+            transition: color 0.3s ease;
         }
 
         .section {
-            background: #f8f9fa;
+            background: var(--section-bg);
             border-radius: 10px;
             padding: 25px;
             margin-bottom: 25px;
+            transition: background 0.3s ease;
         }
 
         .section h2 {
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 20px;
             font-size: 1.5em;
+            transition: color 0.3s ease;
         }
 
         .form-group {
@@ -110,21 +275,24 @@
             display: block;
             margin-bottom: 5px;
             font-weight: 600;
-            color: #555;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
 
         input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 1em;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s, background 0.3s, color 0.3s;
+            background: var(--input-bg);
+            color: var(--text-primary);
         }
 
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             outline: none;
-            border-color: #4ecdc4;
+            border-color: var(--border-focus);
         }
 
         .btn {
@@ -162,19 +330,21 @@
         }
 
         .progress-container {
-            background: #e9ecef;
+            background: var(--section-bg);
             border-radius: 10px;
             padding: 20px;
             margin: 20px 0;
             display: none;
+            transition: background 0.3s ease;
         }
 
         .progress-bar {
-            background: #e9ecef;
+            background: var(--border-color);
             border-radius: 10px;
             height: 20px;
             overflow: hidden;
             margin-bottom: 10px;
+            transition: background 0.3s ease;
         }
 
         .progress-fill {
@@ -188,7 +358,8 @@
         .progress-text {
             text-align: center;
             font-weight: 600;
-            color: #555;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
 
         .results-section {
@@ -214,16 +385,16 @@
         }
 
         .artist-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px var(--shadow-light);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.3s ease;
         }
 
         .artist-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px var(--shadow-medium);
         }
 
         .artist-header {
@@ -240,8 +411,9 @@
         .artist-name {
             font-size: 1.2em;
             font-weight: bold;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 5px;
+            transition: color 0.3s ease;
         }
 
         .artist-posts {
@@ -252,10 +424,11 @@
         }
 
         .artist-other-names {
-            color: #666;
+            color: var(--text-secondary);
             font-style: italic;
             font-size: 0.9em;
             margin-bottom: 3px;
+            transition: color 0.3s ease;
         }
 
         .artist-actions {
@@ -292,7 +465,8 @@
         .artist-preview {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border-color);
+            transition: border-color 0.3s ease;
         }
 
         .preview-header {
@@ -305,7 +479,8 @@
         .preview-title {
             font-size: 0.9em;
             font-weight: 600;
-            color: #555;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
 
         .preview-close {
@@ -365,7 +540,8 @@
             align-items: center;
             gap: 5px;
             font-size: 0.8em;
-            color: #666;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
 
         .blur-toggle input[type="checkbox"] {
@@ -397,8 +573,9 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
+            transition: color 0.3s ease;
         }
 
         .preview-error {
@@ -416,8 +593,9 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--modal-bg);
             cursor: pointer;
+            transition: background 0.3s ease;
         }
 
         .image-modal-content {
@@ -458,17 +636,19 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
         }
 
         .spinner {
-            border: 3px solid #f3f3f3;
+            border: 3px solid var(--border-color);
             border-top: 3px solid #4ecdc4;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
+            transition: border-color 0.3s ease;
         }
 
         @keyframes spin {
@@ -483,33 +663,76 @@
         }
 
         .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: var(--success-bg, #d4edda);
+            color: var(--success-text, #155724);
+            border: 1px solid var(--success-border, #c3e6cb);
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: var(--error-bg, #f8d7da);
+            color: var(--error-text, #721c24);
+            border: 1px solid var(--error-border, #f5c6cb);
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .alert-warning {
+            background: var(--warning-bg, #fff3cd);
+            color: var(--warning-text, #856404);
+            border: 1px solid var(--warning-border, #ffeaa7);
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .auth-status {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .auth-status.authenticated {
+            background: var(--success-bg, #d4edda);
+            border: 1px solid var(--success-border, #c3e6cb);
+            color: var(--success-text, #155724);
+        }
+
+        .auth-status.public {
+            background: var(--warning-bg, #fff3cd);
+            border: 1px solid var(--warning-border, #ffeaa7);
+            color: var(--warning-text, #856404);
+        }
+
+        .description-text {
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+        }
+
+        small {
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
         }
 
         .top-artists {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             padding: 15px;
+            transition: background 0.3s ease;
         }
 
         .top-artists h3 {
             margin-bottom: 15px;
-            color: #333;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
         }
 
         .top-artist-item {
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            transition: border-color 0.3s ease, color 0.3s ease;
         }
 
         .top-artist-item:last-child {
@@ -534,6 +757,13 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="dark-mode-toggle">
+                <label for="theme-toggle">🌙</label>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
             <h1>🎨 Danbooru Artist Scraper</h1>
             <p>Search and discover artists from Danbooru with advanced filtering</p>
         </div>
@@ -541,59 +771,59 @@
         <div class="main-content">
             <!-- Database Statistics -->
             <div class="stats-section">
-                <h2>📊 Database Statistics</h2>
+                <h2 style="color: var(--text-primary); margin-bottom: 20px; font-size: 1.5em; transition: color 0.3s ease;">📊 Database Statistics</h2>
                 
                 <!-- Authentication Status -->
                 {% if auth.authenticated %}
-                <div class="auth-status" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #d4edda; border: 1px solid #c3e6cb;">
-                    <span style="color: #155724;">✅ <strong>Authenticated</strong> as {{ auth.username }}</span>
-                    <br><span style="color: #155724; font-size: 0.9em;">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
+                <div class="auth-status authenticated">
+                    <span>✅ <strong>Authenticated</strong> as {{ auth.username }}</span>
+                    <br><span class="description-text">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
                     
                     <!-- Health status with appropriate colors -->
                     {% if auth.rate_limit_status.health_status == 'healthy' %}
-                    <br><span style="color: #155724; font-size: 0.9em;">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span class="description-text">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% elif auth.rate_limit_status.health_status == 'warning' %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--warning-text);">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% elif auth.rate_limit_status.health_status == 'critical' %}
-                    <br><span style="color: #d9534f; font-size: 0.9em;">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--error-text);">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% else %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--warning-text);">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% endif %}
                     
                     <!-- 429 Detection Info -->
                     {% if auth.rate_limit_status.total_429s > 0 %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
+                    <br><span style="color: var(--warning-text);">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
                     {% endif %}
                     
                     <!-- Adaptive rate limiting status -->
                     {% if auth.rate_limit_status.is_rate_limited %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Adaptive rate limiting active</strong></span>
+                    <br><span style="color: var(--warning-text);">🔄 <strong>Adaptive rate limiting active</strong></span>
                     {% endif %}
                     
                     <!-- Cooldown status -->
                     {% if auth.rate_limit_status.adaptive_cooldown_active %}
-                    <br><span style="color: #d9534f; font-size: 0.9em;">⏸️ <strong>Cooldown:</strong> {{ "%.1f"|format(auth.rate_limit_status.adaptive_cooldown_remaining) }}s remaining</span>
+                    <br><span style="color: var(--error-text);">⏸️ <strong>Cooldown:</strong> {{ "%.1f"|format(auth.rate_limit_status.adaptive_cooldown_remaining) }}s remaining</span>
                     {% endif %}
                 </div>
                 {% else %}
-                <div class="auth-status" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #fff3cd; border: 1px solid #ffeaa7;">
-                    <span style="color: #856404;">⚠️ <strong>Using Public API</strong> (limited functionality)</span>
-                    <br><span style="color: #856404; font-size: 0.9em;">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
+                <div class="auth-status public">
+                    <span>⚠️ <strong>Using Public API</strong> (limited functionality)</span>
+                    <br><span class="description-text">Rate limit: {{ auth.rate_limit_status.current_rate_limit }}</span>
                     
                     <!-- Health status for public API -->
                     {% if auth.rate_limit_status.health_status == 'healthy' %}
-                    <br><span style="color: #155724; font-size: 0.9em;">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span class="description-text">🟢 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% elif auth.rate_limit_status.health_status == 'warning' %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--warning-text);">🟡 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% elif auth.rate_limit_status.health_status == 'critical' %}
-                    <br><span style="color: #d9534f; font-size: 0.9em;">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--error-text);">🔴 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% else %}
-                    <br><span style="color: #856404; font-size: 0.9em;">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
+                    <br><span style="color: var(--warning-text);">🔄 <strong>Health:</strong> {{ auth.rate_limit_status.health_status }}</span>
                     {% endif %}
                     
                     <!-- 429 Detection Info for public API -->
                     {% if auth.rate_limit_status.total_429s > 0 %}
-                    <br><span style="color: #d9534f; font-size: 0.9em;">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
+                    <br><span style="color: var(--error-text);">🚫 <strong>429 Errors:</strong> {{ auth.rate_limit_status.total_429s }} total, {{ auth.rate_limit_status.consecutive_429s }} consecutive</span>
                     {% endif %}
                     
                     <!-- Adaptive rate limiting for public API -->
@@ -648,13 +878,13 @@
                         <li><strong>Use search to find interesting artists</strong> by name or criteria</li>
                         <li><strong>Enable post counts only when needed</strong> for specific searches</li>
                     </ol>
-                    <p style="color: #004085; margin: 10px 0 0 0; font-size: 0.9em;">
+                    <p style="color: var(--text-secondary); margin: 10px 0 0 0; font-size: 0.9em;"></p>
                         ⚡ <strong>Fast mode:</strong> ~1000 artists in 2-3 seconds<br>
                         📊 <strong>With post counts:</strong> ~1000 artists in 10+ minutes (1000+ extra API calls)
                     </p>
                 </div>
                 
-                <p style="margin-bottom: 20px; color: #666;">
+                <p class="description-text" style="margin-bottom: 20px;">
                     Collect artist data from Danbooru using the JSON API. Uses pagination format a0, a1, a2, etc.
                     Each page can contain up to 1000 artists.
                 </p>
@@ -663,12 +893,12 @@
                     <div>
                         <label for="startPage">Start Page (0-based):</label>
                         <input type="number" id="startPage" value="0" min="0" max="9999">
-                        <small style="color: #666;">Page a0 = first page, a1 = second page, etc.</small>
+                        <small>Page a0 = first page, a1 = second page, etc.</small>
                     </div>
                     <div>
                         <label for="maxPages">Max Pages (optional):</label>
                         <input type="number" id="maxPages" value="10" min="1" max="1000">
-                        <small style="color: #666;">Leave empty to scrape until no more data</small>
+                        <small>Leave empty to scrape until no more data</small>
                     </div>
                 </div>
                 
@@ -677,7 +907,7 @@
                         <input type="checkbox" id="fetchPostCounts">
                         <span><strong>Enable post count fetching</strong> (much slower but complete data)</span>
                     </label>
-                    <small style="color: #666; margin-left: 25px;">
+                    <small class="description-text" style="margin-left: 25px; display: block; margin-top: 5px; color: var(--text-primary);"></small>
                         ⚡ <strong>Recommended:</strong> Leave unchecked for fast initial collection<br>
                         📊 <strong>Enable only when needed:</strong> Adds 1000+ extra API calls per page (very slow)<br>
                         🎯 <strong>Best practice:</strong> Collect artists first, then search by name to find interesting ones
@@ -929,7 +1159,7 @@
                             📸 Show Preview
                         </button>
                         <a href="https://danbooru.donmai.us/posts?tags=${encodeURIComponent(artist.name)}" 
-                           target="_blank" class="btn-small" style="background: #667eea; color: white; text-decoration: none;">
+                           target="_blank" class="btn-small btn-secondary" style="text-decoration: none;">
                             🔗 View on Danbooru
                         </a>
                     </div>
@@ -1154,7 +1384,7 @@
             const exampleButtons = document.createElement('div');
             exampleButtons.style.marginTop = '15px';
             exampleButtons.innerHTML = `
-                <p style="margin-bottom: 10px; color: #666;"><strong>Quick Examples:</strong></p>
+                <p class="description-text" style="margin-bottom: 10px;"><strong>Quick Examples:</strong></p>
                 <button class="btn btn-secondary" onclick="searchArtistsStartingWithA()">Artists starting with "A"</button>
                 <button class="btn btn-secondary" onclick="searchPopularArtists()">Artists with 300+ posts</button>
                 <button class="btn btn-secondary" onclick="testQuickScrape()">Test Scrape (3 pages)</button>
@@ -1194,10 +1424,21 @@
                         // Find and update health status
                         const healthText = authDiv.querySelector('span:nth-child(5)');
                         if (healthText) {
-                            const healthColor = status.health_status === 'healthy' ? '#155724' : 
-                                              status.health_status === 'warning' ? '#856404' : '#d9534f';
                             healthText.innerHTML = `${healthIcon} <strong>Health:</strong> ${status.health_status}`;
-                            healthText.style.color = healthColor;
+                            
+                            // Remove existing health classes
+                            healthText.classList.remove('health-healthy', 'health-warning', 'health-critical', 'health-recovering');
+                            
+                            // Add appropriate health class for theming
+                            if (status.health_status === 'healthy') {
+                                healthText.classList.add('health-healthy');
+                            } else if (status.health_status === 'warning') {
+                                healthText.classList.add('health-warning');  
+                            } else if (status.health_status === 'critical') {
+                                healthText.classList.add('health-critical');
+                            } else {
+                                healthText.classList.add('health-recovering');
+                            }
                         }
                         
                         // Update 429 status if present
@@ -1262,12 +1503,32 @@
         
         // Initialize rate limit monitoring when page loads
         window.addEventListener('DOMContentLoaded', function() {
+            // Initialize dark mode
+            initializeDarkMode();
+            
             // Initial update
             updateRateLimitStatus();
             
             // Set up periodic updates
             rateLimitUpdateInterval = setInterval(updateRateLimitStatus, 10000); // Every 10 seconds
         });
+
+        // Dark mode functionality
+        function initializeDarkMode() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            
+            // Set initial theme
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeToggle.checked = savedTheme === 'dark';
+            
+            // Add event listener
+            themeToggle.addEventListener('change', function() {
+                const newTheme = this.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        }
 
         // Stop rate limit monitoring when page is hidden
         document.addEventListener('visibilitychange', function() {

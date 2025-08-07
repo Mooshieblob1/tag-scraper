@@ -4,7 +4,7 @@ A comprehensive web application for scraping and searching artist data from Danb
 
 ## ✨ Features
 
-- **Web-based Interface**: Modern, responsive UI for easy interaction
+- **Web-based Interface**: Modern, responsive UI with dark/light mode toggle
 - **Artist Scraping**: Collect artist data from Danbooru pages 1-1000 (free tier limit)
 - **Post Count Fetching**: Optional individual post count retrieval (requires API credentials)
 - **Image Previews**: Visual artwork previews directly in search results with:
@@ -83,6 +83,19 @@ This scraper includes sophisticated 429 (Too Many Requests) detection and adapti
    ```
 
 5. **Open your browser to:** http://localhost:5000
+
+## 🎨 User Interface Features
+
+### Dark/Light Mode
+- **Toggle Switch**: Click the moon icon (🌙) in the header to switch between dark and light themes
+- **Automatic Adaptation**: All UI elements, text, and backgrounds smoothly transition between modes
+- **Persistent Setting**: Your theme preference is saved in browser storage
+
+### Image Content Controls
+- **Smart Blur**: Sensitive/questionable/explicit content automatically blurred for privacy
+- **Rating Priority**: Images sorted by General → Sensitive → Questionable → Explicit
+- **Blur Toggle**: Per-artist toggle to enable/disable content blurring
+- **Extreme Privacy**: 4.3 billion pixel blur effect (2^32) for maximum content protection
 
 ## 📊 How to Use
 

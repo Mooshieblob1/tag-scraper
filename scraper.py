@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 class DanbooruArtistScraper:
-    def __init__(self, db_path: str = "artists.db", username: str = None):
+    def __init__(self, db_path: str = "artists.db", username: str = None, api_key: str = None):
         self.base_url = "https://danbooru.donmai.us/artists.json"
         self.session = requests.Session()
         self.session.headers.update({
@@ -28,22 +28,15 @@ class DanbooruArtistScraper:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        # Load API credentials from environment  
-        self.api_key = os.getenv('DANBOORU_API_KEY')
+        # Load API credentials from parameters first, then environment
+        self.api_key = api_key or os.getenv('DANBOORU_API_KEY')
         self.username = username or os.getenv('DANBOORU_USERNAME')
         
-        if self.api_key and self.username:
-            # Setup HTTP Basic Authentication
-            self.session.auth = (self.username, self.api_key)
-            self.logger.info(f"API authentication configured for user: {self.username}")
-            self.authenticated = True
-        elif self.api_key:
-            self.logger.warning("API key found but no username provided - authentication may not work")
-            self.authenticated = False
-        else:
-            self.logger.warning("No API credentials found - using public API (limited functionality)")
-            self.authenticated = False
+        # Initialize authentication status
+        self.authenticated = False
+        self._configure_authentication()
         
+        # Database setup
         self.db_path = db_path
         self.setup_database()
         
@@ -72,6 +65,50 @@ class DanbooruArtistScraper:
         # Adaptive rate limiting thresholds
         self.adaptive_threshold_429s = 3  # Start adapting after 3 429s
         self.recovery_success_threshold = 10  # Reset after 10 consecutive successes
+        
+    def _configure_authentication(self):
+        """Configure API authentication with current credentials"""
+        if self.api_key and self.username:
+            # Setup HTTP Basic Authentication
+            self.session.auth = (self.username, self.api_key)
+            self.logger.info(f"API authentication configured for user: {self.username}")
+            self.authenticated = True
+        elif self.api_key:
+            self.logger.warning("API key found but no username provided - authentication may not work")
+            self.authenticated = False
+        else:
+            self.logger.warning("No API credentials found - using public API (limited functionality)")
+            self.authenticated = False
+    
+    def set_credentials(self, username: str, api_key: str) -> bool:
+        """Set new API credentials and reconfigure authentication"""
+        if not username or not api_key:
+            return False
+            
+        self.username = username.strip()
+        self.api_key = api_key.strip()
+        
+        # Reconfigure authentication
+        if self.api_key and self.username:
+            self.session.auth = (self.username, self.api_key)
+            self.authenticated = True
+            self.logger.info(f"API credentials updated for user: {self.username}")
+        else:
+            self.session.auth = None
+            self.authenticated = False
+            self.logger.warning("API credentials cleared")
+        
+        return self.authenticated
+
+    def _configure_authentication(self):
+        """Configure authentication based on current credentials"""
+        if self.api_key and self.username:
+            self.session.auth = (self.username, self.api_key)
+            self.authenticated = True
+            self.logger.info(f"API authentication configured for user: {self.username}")
+        else:
+            self.session.auth = None
+            self.authenticated = False
     
     def setup_database(self):
         """Initialize SQLite database for storing artist data"""

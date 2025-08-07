@@ -224,9 +224,56 @@ def get_artist_images(artist_name):
             'error': str(e)
         }), 500
 
+@app.route('/credentials', methods=['POST'])
+def set_credentials():
+    """Set API credentials via web interface"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        api_key = data.get('api_key', '').strip()
+        
+        if not username or not api_key:
+            return jsonify({
+                'success': False,
+                'error': 'Both username and API key are required'
+            }), 400
+        
+        # Test credentials by setting them
+        success = scraper.set_credentials(username, api_key)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Credentials successfully set for user: {username}',
+                'authenticated': True,
+                'username': username
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to authenticate with provided credentials'
+            }), 401
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/credentials', methods=['GET'])
+def get_credentials_status():
+    """Get current authentication status"""
+    return jsonify({
+        'authenticated': scraper.authenticated,
+        'username': scraper.username if scraper.authenticated else None,
+        'has_env_credentials': bool(os.getenv('DANBOORU_USERNAME') and os.getenv('DANBOORU_API_KEY'))
+    })
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     if not os.path.exists('templates'):
         os.makedirs('templates')
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Get port from environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)

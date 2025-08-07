@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  danbooru-scraper:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./artists.db:/app/artists.db
+    environment:
+      - FLASK_ENV=production
+      - DANBOORU_USERNAME=${DANBOORU_USERNAME}
+      - DANBOORU_API_KEY=${DANBOORU_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  data:
+  db:
